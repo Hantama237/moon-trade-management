@@ -1,0 +1,37 @@
+{
+  "host": "localhost",
+  "port": 3030,
+  "public": "./public/",
+  "origins": [
+    "https://yourbackdomain.com"
+  ],
+  "paginate": {
+    "default": 10,
+    "max": 50
+  },
+  "mysql": {
+    "client": "mysql",
+    "connection": "mysql://root:@localhost:3306/moontrade_management"
+  },
+  "authentication": {
+    "entity": "user",
+    "service": "users",
+    "secret": "J6+8ZLPJv/iYAwyWPxVn9lcqUvAfP4vJ",
+    "authStrategies": [
+      "jwt",
+      "local"
+    ],
+    "jwtOptions": {
+      "header": {
+        "typ": "access"
+      },
+      "audience": "https://yourfrontdomain.com",
+      "algorithm": "HS256",
+      "expiresIn": "1d"
+    },
+    "local": {
+      "usernameField": "email",
+      "passwordField": "password"
+    }
+  }
+}
