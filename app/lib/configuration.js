@@ -8,7 +8,9 @@ exports.configurationSchema = typebox_1.Type.Intersect([
     typebox_1.Type.Object({
         host: typebox_1.Type.String(),
         port: typebox_1.Type.Number(),
-        public: typebox_1.Type.String()
+        public: typebox_1.Type.String(),
+        binance_api_key: typebox_1.Type.String(),
+        binance_api_secret: typebox_1.Type.String(),
     })
 ]);
 exports.configurationValidator = (0, typebox_1.getValidator)(exports.configurationSchema, validators_1.dataValidator);

@@ -9,7 +9,7 @@ export type SettingClientService = Pick<SettingService<Params<SettingQuery>>, (t
 
 export const settingPath = 'setting'
 
-export const settingMethods = ['find', 'get', 'create', 'patch', 'remove'] as const
+export const settingMethods = ['find', 'get', 'create', 'patch', 'remove','getSettingValue','updateExchangeInfo','getAssetPrecision'] as const
 
 export const settingClient = (client: ClientApplication) => {
   const connection = client.get('connection')

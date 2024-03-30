@@ -44,19 +44,19 @@ const tradeTemplate = ()=> /*html*/
             <div class="stats shadow">
                 <div class="stat">
                     <div class="stat-title">Balance</div>
-                    <div class="stat-value">13.65</div>
+                    <div class="stat-value" id="balance">0s</div>
                 </div>
                 <div class="stat">
                     <div class="stat-figure text-secondary">
                     </div>
                     <div class="stat-title">Profit</div>
-                    <div class="stat-value">1.70</div>
-                    <div class="stat-desc">↗︎ 0.20 (24%)</div>
+                    <div class="stat-value" id="profit">0</div>
+                    <div class="stat-desc">🔼 <span id="profit-percent">0</span>%</div>
                 </div>
                 <div class="stat">
                     <div class="stat-title">Loss</div>
-                    <div class="stat-value">1.00</div>
-                    <div class="stat-desc">↘︎ 0.10 (14%)</div>
+                    <div class="stat-value" id="loss">0</div>
+                    <div class="stat-desc">🔽 <span id="loss-percent">0</span>%</div>
                 </div>
             </div>
             <div class="divider">Recent Trades</div>
@@ -69,43 +69,27 @@ const tradeTemplate = ()=> /*html*/
                             <th>Symbol</th>
                             <th>Price</th>
                             <th>P/L</th>
+                            <th>Sync</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="trade-history">
                         <!-- row 1 -->
                         <tr class="hover:bg-sky-700">
-                            <td><a href="#detail_modal" class="link">23 March, 10:36</a></td>
-                            <td>ETHUSDT</td>
-                            <td>3561.23</td>
-                            <td>-0.20</td>
-                        </tr>
-                        <!-- row 1 -->
-                        <tr class="hover:bg-sky-700">
-                            <td><a href="#detail_modal" class="link">23 March, 10:36</a></td>
-                            <td>ETHUSDT</td>
-                            <td>3561.23</td>
-                            <td>-0.20</td>
-                        </tr>
-                        <!-- row 1 -->
-                        <tr class="hover:bg-sky-700">
-                            <td><a href="#detail_modal" class="link">23 March, 10:36</a></td>
-                            <td>ETHUSDT</td>
-                            <td>3561.23</td>
-                            <td>-0.20</td>
+                            <td class="text-center" colspan="5">No Trades Available</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
             <div class="divider">New Trades</div>
             <label class="form-control w-full">
-                
+
                 <div class="flex justify-content-center">
                     <input class="input input-bordered w-1/2 mr-2 size-trigger" name="entry_price" type="number" placeholder="Entry price" />
                     <select class="select select-bordered w-1/2" name="symbol">
-                        <option disabled selected>Choose symbol</option>
                         <option value="ETHUSDT">ETHUSDT</option>
-                        <option value="BTCUSDT">ETHUSDT</option>
+                        <option value="BTCUSDT">BTCUSDT</option>
                         <option value="LTCUSDT">LTCUSDT</option>
+                        <option selected value="BNBUSDT">BNBUSDT</option>
                     </select>
                 </div>
             </label>
@@ -115,7 +99,7 @@ const tradeTemplate = ()=> /*html*/
                     <input class="input input-bordered w-full size-trigger" name="stop_loss_price" type="number" placeholder="SL Price" />
                 </label>
                 <label class="form-control w-1/2">
-                    <input class="input input-bordered w-50" name="take_profit_price" type="number" placeholder="TP price" />
+                    <input class="input input-bordered w-50" name="take_profit_price" type="number" value="0" placeholder="TP price" />
                 </label>
             </div>
             <textarea class="textarea textarea-bordered" placeholder="Notes"></textarea>
@@ -125,12 +109,63 @@ const tradeTemplate = ()=> /*html*/
                     <span class="text-xs">SL: <span id="distance">0</span>%</span><br>
                     <span class="font-semibold">Size: <span id="position-size">0</span></span>
                 </div>
-                <button id="new-trade" class="btn btn-outline btn-sm mr-1">Submit Order</button>
+                <button class="btn btn-outline btn-sm mr-1" id="new-trade">Submit Order</button>
             </div>
         </div>
     </div>
 </div>
 `
+const tradeHistoryTemplate = (trade_history)=> /*html*/
+`
+<tr class="hover:bg-sky-700">
+    <td>${new Intl.DateTimeFormat('en-US').format(new Date(trade_history.entry_date))}</td>
+    <td>${trade_history.symbol}</td>
+    <td>${trade_history.entry_price}</td>
+    <td>${(trade_history.realized_pnl + trade_history.fee).toFixed(4)}</td>
+    <td>
+        <button class="btn btn-circle btn-outline btn-xs" onclick="syncTrade(${trade_history.id},'${trade_history.symbol}',${trade_history.entry_date})">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4.56079 10.6418L6.35394 3.94971L8.25402 5.84979C11.7312 3.6588 16.3814 4.07764 19.41 7.1063L17.9958 8.52052C15.7536 6.27827 12.3686 5.87519 9.71551 7.31128L11.2529 8.84869L4.56079 10.6418Z" fill="currentColor" />
+                <path d="M19.4392 13.3581L17.646 20.0502L15.7459 18.1501C12.2688 20.3411 7.61857 19.9223 4.58991 16.8936L6.00413 15.4794C8.24638 17.7217 11.6313 18.1247 14.2844 16.6887L12.747 15.1512L19.4392 13.3581Z" fill="currentColor" />
+            </svg>
+        </button>
+    </td>
+</tr>
+`
 const showTrade = async () => {
- document.getElementById('app').innerHTML = tradeTemplate()
+    document.getElementById('app').innerHTML = tradeTemplate()
+    await updateTradeSummary()
+    await updateTradeHistory()
+}
+const updateTradeSummary = async ()=>{
+    let summary = await client.service('trade').getAccountSummary()
+    if(summary.success){
+        $('#balance').text(summary.data.balance)
+        $('#profit').text(summary.data.profit)
+        $('#profit-percent').text(summary.data.profit_percent)
+        $('#loss').text(summary.data.loss)
+        $('#loss-percent').text(summary.data.loss_percent)
+    }
+}
+const updateTradeHistory = async ()=>{
+    let history = await client.service('trade').getTradeHistory()
+    if(history.success){
+        if( history.data.length > 0){
+            let html = ``;
+            for(let trade of history.data){
+                html += tradeHistoryTemplate(trade);
+            }
+            $('#trade-history').html(html)
+        }
+    }
+}
+const syncTrade = async (id)=>{
+    let sync = await client.service('trade').syncTrade(id)
+    console.log(sync)
+    if(sync.success){
+        updateTradeHistory()
+        updateTradeSummary()
+    }else{
+        alert(sync.message)
+    }
 }

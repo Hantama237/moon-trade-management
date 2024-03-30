@@ -4,9 +4,9 @@ import { KnexService } from '@feathersjs/knex'
 import type { KnexAdapterParams, KnexAdapterOptions } from '@feathersjs/knex'
 
 import type { Application } from '../../declarations'
-import type { Trade, TradeData, TradePatch, TradeQuery } from './trade.schema'
+import type { Trade, TradeData, TradeEntry, TradePatch, TradeQuery } from './trade.schema'
 
-import {newEntryWithTPSL, getPositionSize} from './helper/binance.futures'
+import {newEntryWithTPSL, getPositionSize, getTradeResult} from '../../helper/binance.futures'
 import {app} from '../../app'
 import { NewOrderError } from 'binance'
 
@@ -21,10 +21,46 @@ export class TradeService<ServiceParams extends Params = TradeParams> extends Kn
   TradeParams,
   TradePatch
 > {
-  async addBinanceTrade(data: TradeData,params: TradeParams) {
-    let result = await newEntryWithTPSL(data.symbol,data.entry_price > data.stop_loss_price ? 'BUY' : 'SELL',data.size.toFixed(3), data.stop_loss_price.toFixed(2),data.take_profit_price.toFixed(2))
-    if(result.success){
-      this.create(data)
+  async getAccountSummary(){
+    // console.log(await app.service('setting').getAssetPrecision('BNBUSDT'))
+    let capital = parseFloat((await app.service('setting').getSettingValue('capital')).data);
+    let profit_result = await this.Model.table('trade').where('realized_pnl','>',0).sum({realized_pnl:'realized_pnl',fee:'fee'})
+    let loss_result = await this.Model.table('trade').where('realized_pnl','<',0).sum({realized_pnl:'realized_pnl',fee:'fee'})
+    console.log(loss_result);
+    let total_profit = (profit_result[0].realized_pnl??0) + (profit_result[0].fee??0);
+    let total_loss = (loss_result[0].realized_pnl??0) + (loss_result[0].fee??0);
+    return {
+      success: true,
+      message: "success",
+      data: {
+        balance: (capital + total_profit + total_loss).toFixed(2),
+        profit: total_profit.toFixed(2),
+        profit_percent: (((total_profit)/capital)*100).toFixed(2),
+        loss: total_loss.toFixed(2),
+        loss_percent: (((total_loss)/capital)*100).toFixed(2),
+      }
+    };
+  }
+  async getTradeHistory(){
+    let trade_history = await this.find({
+      query:{
+        $limit: 3
+      }
+    })
+    return {
+      success: true,
+      message: "success",
+      data: trade_history.data
+    }
+  }
+  async addBinanceTrade(data: TradeEntry,params: TradeParams) {
+    let precision = await app.service('setting').getAssetPrecision(data.symbol);
+    let result = await newEntryWithTPSL(data.symbol,data.entry_price > data.stop_loss_price ? 'BUY' : 'SELL',data.size.toFixed(precision.data), data.stop_loss_price.toFixed(2),data.take_profit_price.toFixed(2))
+    if(result.success && result.data){
+      let trade_data = data as TradeData;
+      trade_data.binance_order_id = result.data.orderId;
+      trade_data.entry_date = Date.now(); 
+      this.create(trade_data)
       return{
         success:true,
         message:"success"
@@ -36,15 +72,8 @@ export class TradeService<ServiceParams extends Params = TradeParams> extends Kn
     }
   }
   async calculatePositionSize(data: TradeData, params: TradeParams){
-    let settings = await app.service('setting').find({
-      query:{
-        key:'risk',
-        $limit: 1
-      }
-    });
-    let risk : number= parseFloat(settings.data[0].value)
-    let position_size: number = getPositionSize(risk,data.entry_price,data.stop_loss_price)
-    console.log((position_size/data.entry_price))
+    let risk : number= parseFloat((await app.service('setting').getSettingValue('risk')).data)
+    let position_size: number = getPositionSize(risk, data.entry_price, data.stop_loss_price)
     return {
       success: true,
       message: "success",
@@ -54,6 +83,19 @@ export class TradeService<ServiceParams extends Params = TradeParams> extends Kn
         size: position_size.toFixed(2),
         size_crypto: (position_size/data.entry_price).toString(),
       }
+    }
+  }
+  async syncTrade(trade_id: number){
+    let trade = await this.get(trade_id);
+    let result = await getTradeResult(trade.symbol,trade.entry_date,trade.exit_date)
+    this.patch(trade_id,{
+      realized_pnl: result.data.realized_pnl,
+      fee: result.data.fee
+    })
+    return {
+      success:true,
+      message:"success",
+      data: result
     }
   }
 }

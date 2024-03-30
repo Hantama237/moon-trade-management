@@ -11,7 +11,9 @@ const koa_1 = require("@feathersjs/koa");
 const socketio_1 = __importDefault(require("@feathersjs/socketio"));
 const configuration_2 = require("./configuration");
 const log_error_1 = require("./hooks/log-error");
+const error_handler_1 = require("./hooks/error-handler");
 const mysql_1 = require("./mysql");
+const authentication_1 = require("./authentication");
 const index_1 = require("./services/index");
 const channels_1 = require("./channels");
 const app = (0, koa_1.koa)((0, feathers_1.feathers)());
@@ -32,6 +34,7 @@ app.configure((0, socketio_1.default)({
     }
 }));
 app.configure(mysql_1.mysql);
+app.configure(authentication_1.authentication);
 app.configure(index_1.services);
 app.configure(channels_1.channels);
 // Register hooks that run on all service methods
@@ -41,7 +44,9 @@ app.hooks({
     },
     before: {},
     after: {},
-    error: {}
+    error: {
+        all: [error_handler_1.featherErrorHandler]
+    }
 });
 // Register application setup and teardown hooks here
 app.hooks({

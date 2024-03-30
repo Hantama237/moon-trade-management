@@ -1,5 +1,11 @@
 import type { TransportConnection, Application } from '@feathersjs/feathers';
 import type { AuthenticationClientOptions } from '@feathersjs/authentication-client';
+import './services/setting/setting.shared';
+export type { Setting, SettingData, SettingQuery, SettingPatch } from './services/setting/setting.shared';
+import './services/trade/trade.shared';
+export type { Trade, TradeData, TradeQuery, TradePatch } from './services/trade/trade.shared';
+import './services/users/users.shared';
+export type { User, UserData, UserQuery, UserPatch } from './services/users/users.shared';
 export interface Configuration {
     connection: TransportConnection<ServiceTypes>;
 }

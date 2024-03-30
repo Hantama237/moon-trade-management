@@ -95,6 +95,8 @@ export declare const configurationSchema: import("@sinclair/typebox").TIntersect
     host: import("@sinclair/typebox").TString<string>;
     port: import("@sinclair/typebox").TNumber;
     public: import("@sinclair/typebox").TString<string>;
+    binance_api_key: import("@sinclair/typebox").TString<string>;
+    binance_api_secret: import("@sinclair/typebox").TString<string>;
 }>]>;
 export type ApplicationConfiguration = Static<typeof configurationSchema>;
 export declare const configurationValidator: import("@feathersjs/schema").Validator<any, any>;

@@ -5,7 +5,7 @@ var loginTemplate = (error) => /*html*/
     <div class="card w-full max-w-sm bg-base-100 px-4 py-8 shadow-xl">
         <div class="px-4"><i class="h-32 w-32 block mx-auto i-logos-feathersjs invert" alt=""></i>
             <h1 class="text-5xl font-bold text-center my-5 bg-clip-text bg-gradient-to-br">
-                Feathers Chat
+                MoonTrade
             </h1>
         </div>
         <form class="card-body pt-2">
@@ -24,7 +24,8 @@ var loginTemplate = (error) => /*html*/
                 <input class="input input-bordered" name="password" type="password" placeholder="enter password">
             </div>
             <div class="form-control mt-6"><button class="btn" id="login" type="button">Login</button></div>
-            <div class="form-control mt-6"><button class="btn" id="signup" type="button">Signup</button></div>
+            
         </form>
     </div>
 </div>`
+// <div class="form-control mt-6"><button class="btn" id="signup" type="button">Signup</button></div>

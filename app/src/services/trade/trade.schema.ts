@@ -24,6 +24,9 @@ export const tradeSchema = Type.Object(
     snapshot_path: Type.String(),
     user_id: Type.Number(),
     user: Type.Ref(userSchema),
+    binance_order_id: Type.Number(),
+    realized_pnl: Type.Number(),
+    fee: Type.Number()
   },
   { $id: 'Trade', additionalProperties: false }
 )
@@ -46,6 +49,8 @@ export const tradeDataSchema = Type.Pick(tradeSchema, [
   'stop_loss_price',
   'take_profit_price',
   'size',
+  'binance_order_id',
+  'entry_date'
 ], {
   $id: 'TradeData'
 })
@@ -55,9 +60,6 @@ export const tradeDataResolver = resolve<Trade, HookContext<TradeService>>({
   user_id: async (_value, _message, context) => {
     // Associate the record with the id of the authenticated user
     return context.params.user?.id
-  },
-  entry_date: async () => {
-    return Date.now()
   }
 })
 
@@ -83,3 +85,17 @@ export type TradeQuery = Static<typeof tradeQuerySchema>
 export const tradeQueryValidator = getValidator(tradeQuerySchema, queryValidator)
 export const tradeQueryResolver = resolve<TradeQuery, HookContext<TradeService>>({})
 
+
+
+// Schema for creating new entries
+export const tradeEntrySchema = Type.Pick(tradeSchema, [
+  'symbol',
+  'entry_price',
+  'stop_loss_price',
+  'take_profit_price',
+  'size'
+], {
+  $id: 'TradeEntry'
+})
+export type TradeEntry = Static<typeof tradeEntrySchema>
+export const tradeEntryValidator = getValidator(tradeEntrySchema, dataValidator)

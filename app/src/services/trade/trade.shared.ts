@@ -9,7 +9,7 @@ export type TradeClientService = Pick<TradeService<Params<TradeQuery>>, (typeof 
 
 export const tradePath = 'trade'
 
-export const tradeMethods = ['find', 'get', 'create', 'patch', 'remove', 'addBinanceTrade','calculatePositionSize'] as const
+export const tradeMethods = ['find', 'get', 'create', 'patch', 'remove','getAccountSummary', 'addBinanceTrade','calculatePositionSize','getTradeHistory','syncTrade'] as const
 
 export const tradeClient = (client: ClientApplication) => {
   const connection = client.get('connection')

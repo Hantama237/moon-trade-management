@@ -7,7 +7,7 @@ const socket = io()
 const client = feathers()
 
 client.configure(feathers.socketio(socket)).use('trade', feathers.socketio(socket).service('trade'),{
-  methods: ['find', 'get', 'create', 'patch', 'remove', 'addBinanceTrade','calculatePositionSize']
+  methods: ['find', 'get', 'create', 'patch', 'remove','getAccountSummary','addBinanceTrade','calculatePositionSize','getTradeHistory','syncTrade']
 })
 // Use localStorage to store our login token
 client.configure(feathers.authentication())
@@ -26,26 +26,6 @@ const formatDate = (timestamp) =>
 const showLogin = () => {
     document.getElementById('app').innerHTML = loginTemplate()
 }
-  
-// Shows the chat page
-const showChat = async () => {
-  document.getElementById('app').innerHTML = chatTemplate()
-  // Find the latest 25 message. They will come with the newest first
-  const message = await client.service('message').find({
-      query: {
-        $sort: { created_at: -1 },
-        $limit: 25
-      }
-  })
-
-  
-  // We want to show the newest message last
-  message.data.reverse().forEach(addMessage)
-  // Find all users
-  const users = await client.service('users').find()
-  // Add each user to the list
-  users.data.forEach(addUser)
-}
 
 // Retrieve email/password object from the login/signup page
 const getCredentials = () => {
@@ -55,30 +35,6 @@ const getCredentials = () => {
     }
 
     return user
-}
-  
-// Log in either using the given email/password or the token from storage
-const login = async (credentials) => {
-    try {
-        if (!credentials) {
-          // Try to authenticate using an existing token
-          await client.reAuthenticate()
-        } else {
-          // Otherwise log in with the `local` strategy using the credentials we got
-          await client.authenticate({
-              strategy: 'local',
-              ...credentials
-          })
-        }
-
-        // If successful, show the chat page
-        // showChat()
-        showTrade()
-    } catch (error) {
-        console.log(error)
-        // If we got an error, show the login page
-        showLogin(error)
-    }
 }
   
 // "Signup and login" button click handler
@@ -102,19 +58,6 @@ addEventListener('#logout', 'click', async () => {
     await client.logout()
     document.getElementById('app').innerHTML = loginTemplate()
 })
-  
-// "Send" message form submission handler
-addEventListener('#send-message', 'submit', async (ev) => {
-    // This is the message text input field
-    const input = document.querySelector('[name="text"]')
-    ev.preventDefault()
-    
-    // Create a new message and then clear the input field
-    await client.service('message').create({
-      text: input.value
-    })
-    input.value = ''
-})
 
 addEventListener('#new-trade', 'click', async (ev) => {
   errorHandler(async ()=> { 
@@ -125,7 +68,7 @@ addEventListener('#new-trade', 'click', async (ev) => {
       take_profit_price: parseFloat($('[name="take_profit_price"]').val()),
       size: parseFloat($('#position-size').attr('data-size')),
     });
-    console.log(response);
+    alert(response.message)
     return;
   })
 })
@@ -151,12 +94,29 @@ addEventListener('.size-trigger', 'keyup', async (ev) => {
   })
 })
 
-  
-// Listen to created events and add the new message in real-time
-client.service('message').on('created', addMessage)
-  
-// We will also see when new users get created in real-time
-client.service('users').on('created', addUser)
+// Log in either using the given email/password or the token from storage
+const login = async (credentials) => {
+  try {
+      if (!credentials) {
+        // Try to authenticate using an existing token
+        await client.reAuthenticate()
+      } else {
+        // Otherwise log in with the `local` strategy using the credentials we got
+        await client.authenticate({
+            strategy: 'local',
+            ...credentials
+        })
+      }
+
+      // If successful, show the chat page
+      // showChat()
+      showTrade()
+  } catch (error) {
+      console.log(error)
+      // If we got an error, show the login page
+      showLogin(error)
+  }
+}
   
 // Call login right away so we can show the chat window
 // If the user can already be authenticated

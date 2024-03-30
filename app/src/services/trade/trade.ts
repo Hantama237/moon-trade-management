@@ -11,7 +11,8 @@ import {
   tradeExternalResolver,
   tradeDataResolver,
   tradePatchResolver,
-  tradeQueryResolver
+  tradeQueryResolver,
+  tradeEntryValidator
 } from './trade.schema'
 
 import type { Application } from '../../declarations'
@@ -46,8 +47,11 @@ export const trade = (app: Application) => {
       create: [schemaHooks.validateData(tradeDataValidator), schemaHooks.resolveData(tradeDataResolver)],
       patch: [schemaHooks.validateData(tradePatchValidator), schemaHooks.resolveData(tradePatchResolver)],
       remove: [],
-      addBinanceTrade: [schemaHooks.validateData(tradeDataValidator)],
-      calculatePositionSize: [schemaHooks.validateData(tradeDataValidator)],
+      addBinanceTrade: [schemaHooks.validateData(tradeEntryValidator)],
+      calculatePositionSize: [schemaHooks.validateData(tradeEntryValidator)],
+      getAccountSummary: [],
+      getTradeHistory: [],
+      syncTrade:[]
     },
     after: {
       all: []

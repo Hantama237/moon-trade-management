@@ -4,8 +4,8 @@ import type { Knex } from 'knex'
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable('trade', (table) => {
     table.increments('id')
-    table.datetime('entry_date')
-    table.datetime('exit_date').nullable().defaultTo(null)
+    table.bigInteger('entry_date')
+    table.bigInteger('exit_date').nullable().defaultTo(null)
     table.string('symbol')
     table.decimal('entry_price',16,4)
     table.decimal('stop_loss_price',16,4)
@@ -15,9 +15,8 @@ export async function up(knex: Knex): Promise<void> {
     table.string('snapshot_path').nullable().defaultTo(null)
     table.integer('user_id').unsigned().references('id').inTable('users')
     table.string('binance_order_id').nullable().defaultTo(null)
-    table.string('binance_sl_order_id').nullable().defaultTo(null)
-    table.string('binance_tp_order_id').nullable().defaultTo(null)
-
+    table.decimal('realized_pnl',16,4).nullable().defaultTo(null)
+    table.decimal('fee',16,4).nullable().defaultTo(null)
   })
 }
 

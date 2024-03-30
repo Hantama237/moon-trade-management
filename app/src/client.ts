@@ -10,9 +10,6 @@ export type { Setting, SettingData, SettingQuery, SettingPatch } from './service
 import { tradeClient } from './services/trade/trade.shared'
 export type { Trade, TradeData, TradeQuery, TradePatch } from './services/trade/trade.shared'
 
-import { messageClient } from './services/message/message.shared'
-export type { Message, MessageData, MessageQuery, MessagePatch } from './services/message/message.shared'
-
 import { userClient } from './services/users/users.shared'
 export type { User, UserData, UserQuery, UserPatch } from './services/users/users.shared'
 
@@ -43,7 +40,6 @@ export const createClient = <Configuration = any,>(
   client.set('connection', connection)
 
   client.configure(userClient)
-  client.configure(messageClient)
   client.configure(tradeClient)
   client.configure(settingClient)
   return client

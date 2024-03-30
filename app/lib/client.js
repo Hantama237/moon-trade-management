@@ -7,6 +7,9 @@ exports.createClient = void 0;
 // For more information about this file see https://dove.feathersjs.com/guides/cli/client.html
 const feathers_1 = require("@feathersjs/feathers");
 const authentication_client_1 = __importDefault(require("@feathersjs/authentication-client"));
+const setting_shared_1 = require("./services/setting/setting.shared");
+const trade_shared_1 = require("./services/trade/trade.shared");
+const users_shared_1 = require("./services/users/users.shared");
 /**
  * Returns a typed client for the my-app app.
  *
@@ -20,6 +23,9 @@ const createClient = (connection, authenticationOptions = {}) => {
     client.configure(connection);
     client.configure((0, authentication_client_1.default)(authenticationOptions));
     client.set('connection', connection);
+    client.configure(users_shared_1.userClient);
+    client.configure(trade_shared_1.tradeClient);
+    client.configure(setting_shared_1.settingClient);
     return client;
 };
 exports.createClient = createClient;
