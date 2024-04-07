@@ -18,17 +18,22 @@ export interface EntryResult {
     data?: NewOrderResult;
 }
 
-export async function newEntryWithTPSL(symbol: string, side: OrderSide, quantity: string, sl_price: string, tp_price: string): Promise<EntryResult>{
-    let responses = await BinanceFuturesClient.submitMultipleOrders([
+export async function newEntryWithTPSL(symbol: string,type: FuturesOrderType, side: OrderSide, quantity: string, price: string, sl_price: string, tp_price: string, ): Promise<EntryResult>{
+    let responses : any[] = [];
+    console.log(quantity);
+    let response = await BinanceFuturesClient.submitNewOrder(
         {
             symbol: symbol,
             side: side,
-            type: "MARKET",
-            quantity: quantity
-        }
-    ])
-    if('clientOrderId' in responses[0]){
-        let tp_sl_trade : NewFuturesOrderParams<string>[] = [
+            type: type,
+            quantity: quantity,
+            price: price,
+            timeInForce: 'GTC'
+        } as NewFuturesOrderParams<string>
+    )
+    responses.push(response);
+    if('clientOrderId' in response){
+        response = await BinanceFuturesClient.submitNewOrder(
             {
                 symbol:symbol,
                 side: side == "SELL" ? "BUY" : "SELL",
@@ -36,20 +41,24 @@ export async function newEntryWithTPSL(symbol: string, side: OrderSide, quantity
                 closePosition: "true",
                 stopPrice: sl_price,
                 timeInForce: 'GTE_GTC'
+            } 
+        )
+        responses.push(response);
+        if('clientOrderId' in response){
+            if(parseFloat(tp_price) > 0){
+                response = await BinanceFuturesClient.submitNewOrder(
+                    {
+                        symbol:symbol,
+                        side: side == "SELL" ? "BUY" : "SELL",
+                        type: "TAKE_PROFIT_MARKET",
+                        closePosition: "true",
+                        stopPrice: tp_price,
+                        timeInForce: 'GTE_GTC'
+                    } as NewFuturesOrderParams<string>
+                )
+                responses.push(response);
             }
-        ];
-        if(parseFloat(tp_price) > 0){
-            tp_sl_trade.push({
-                symbol:symbol,
-                side: side == "SELL" ? "BUY" : "SELL",
-                type: "TAKE_PROFIT_MARKET",
-                closePosition: "true",
-                stopPrice: tp_price,
-                timeInForce: 'GTE_GTC'
-            })
         }
-        responses.concat(await BinanceFuturesClient.submitMultipleOrders(tp_sl_trade))
-        console.log(responses);
         return {
             "success": true,
             "message": "success",
@@ -86,6 +95,22 @@ export async function getTradeResult(symbol: string, startTime: number, endTime:
             fee: fee
         }
     };
+}
+export async function getCurrentPrice(symbol: string){
+    let response = await BinanceFuturesClient.getMarkPrice({
+        symbol: symbol
+    })
+    if('markPrice' in response) return {
+        "success": true,
+        "message": "success",
+        "data": response.markPrice
+    }
+    return {
+        "success": false,
+        "message": response,
+        "data":undefined
+    };
+    
 }
 export function getPositionSize(risk: number, price: number,sl_price: number){
     return ((risk/Math.abs(sl_price - price))*price);

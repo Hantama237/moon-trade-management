@@ -6,7 +6,7 @@ import type { KnexAdapterParams, KnexAdapterOptions } from '@feathersjs/knex'
 import type { Application } from '../../declarations'
 import type { Trade, TradeData, TradeEntry, TradePatch, TradeQuery } from './trade.schema'
 
-import {newEntryWithTPSL, getPositionSize, getTradeResult} from '../../helper/binance.futures'
+import {newEntryWithTPSL, getPositionSize, getTradeResult, getCurrentPrice} from '../../helper/binance.futures'
 import {app} from '../../app'
 import { NewOrderError } from 'binance'
 
@@ -23,10 +23,10 @@ export class TradeService<ServiceParams extends Params = TradeParams> extends Kn
 > {
   async getAccountSummary(){
     // console.log(await app.service('setting').getAssetPrecision('BNBUSDT'))
+    // console.log(await app.service('setting').updateExchangeInfo())
     let capital = parseFloat((await app.service('setting').getSettingValue('capital')).data);
     let profit_result = await this.Model.table('trade').where('realized_pnl','>',0).sum({realized_pnl:'realized_pnl',fee:'fee'})
     let loss_result = await this.Model.table('trade').where('realized_pnl','<',0).sum({realized_pnl:'realized_pnl',fee:'fee'})
-    console.log(loss_result);
     let total_profit = (profit_result[0].realized_pnl??0) + (profit_result[0].fee??0);
     let total_loss = (loss_result[0].realized_pnl??0) + (loss_result[0].fee??0);
     return {
@@ -44,7 +44,10 @@ export class TradeService<ServiceParams extends Params = TradeParams> extends Kn
   async getTradeHistory(){
     let trade_history = await this.find({
       query:{
-        $limit: 3
+        $limit: 4,
+        $sort: {
+          id: -1
+        }
       }
     })
     return {
@@ -55,11 +58,24 @@ export class TradeService<ServiceParams extends Params = TradeParams> extends Kn
   }
   async addBinanceTrade(data: TradeEntry,params: TradeParams) {
     let precision = await app.service('setting').getAssetPrecision(data.symbol);
-    let result = await newEntryWithTPSL(data.symbol,data.entry_price > data.stop_loss_price ? 'BUY' : 'SELL',data.size.toFixed(precision.data), data.stop_loss_price.toFixed(2),data.take_profit_price.toFixed(2))
+    let mark_price = await getCurrentPrice(data.symbol);
+    
+    
+    if(!mark_price.success){
+      return {
+        success:false,
+        message:"get price failed"
+      }
+    }
+    console.log(mark_price);
+    data.entry_price = parseFloat(mark_price.data as string);
+    data.size = parseFloat((await this.calculatePositionSize(data as TradeData, params)).data.size_crypto);
+    console.log(data.size.toFixed(precision.data));
+    let result = await newEntryWithTPSL(data.symbol, 'LIMIT', data.entry_price > data.stop_loss_price ? 'BUY' : 'SELL',data.size.toFixed(precision.data), data.entry_price.toFixed(2), data.stop_loss_price.toFixed(2),data.take_profit_price.toFixed(2))
     if(result.success && result.data){
       let trade_data = data as TradeData;
       trade_data.binance_order_id = result.data.orderId;
-      trade_data.entry_date = Date.now(); 
+      trade_data.entry_date = Date.now() - 60000; 
       this.create(trade_data)
       return{
         success:true,

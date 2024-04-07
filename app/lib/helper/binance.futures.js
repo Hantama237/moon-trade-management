@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getPositionSize = exports.getTradeResult = exports.newEntryWithTPSL = exports.BinanceFuturesClient = void 0;
+exports.getPositionSize = exports.getCurrentPrice = exports.getTradeResult = exports.newEntryWithTPSL = exports.BinanceFuturesClient = void 0;
 const feathers_1 = require("@feathersjs/feathers");
 const configuration_1 = __importDefault(require("@feathersjs/configuration"));
 const binance_1 = require("binance");
@@ -16,38 +16,41 @@ exports.BinanceFuturesClient = new binance_1.USDMClient({
     api_key: API_KEY,
     api_secret: API_SECRET,
 }, undefined, false);
-async function newEntryWithTPSL(symbol, side, quantity, sl_price, tp_price) {
-    let responses = await exports.BinanceFuturesClient.submitMultipleOrders([
-        {
+async function newEntryWithTPSL(symbol, type, side, quantity, price, sl_price, tp_price) {
+    let responses = [];
+    console.log(quantity);
+    let response = await exports.BinanceFuturesClient.submitNewOrder({
+        symbol: symbol,
+        side: side,
+        type: type,
+        quantity: quantity,
+        price: price,
+        timeInForce: 'GTC'
+    });
+    responses.push(response);
+    if ('clientOrderId' in response) {
+        response = await exports.BinanceFuturesClient.submitNewOrder({
             symbol: symbol,
-            side: side,
-            type: "MARKET",
-            quantity: quantity
-        }
-    ]);
-    if ('clientOrderId' in responses[0]) {
-        let tp_sl_trade = [
-            {
-                symbol: symbol,
-                side: side == "SELL" ? "BUY" : "SELL",
-                type: "STOP_MARKET",
-                closePosition: "true",
-                stopPrice: sl_price,
-                timeInForce: 'GTE_GTC'
+            side: side == "SELL" ? "BUY" : "SELL",
+            type: "STOP_MARKET",
+            closePosition: "true",
+            stopPrice: sl_price,
+            timeInForce: 'GTE_GTC'
+        });
+        responses.push(response);
+        if ('clientOrderId' in response) {
+            if (parseFloat(tp_price) > 0) {
+                response = await exports.BinanceFuturesClient.submitNewOrder({
+                    symbol: symbol,
+                    side: side == "SELL" ? "BUY" : "SELL",
+                    type: "TAKE_PROFIT_MARKET",
+                    closePosition: "true",
+                    stopPrice: tp_price,
+                    timeInForce: 'GTE_GTC'
+                });
+                responses.push(response);
             }
-        ];
-        if (parseFloat(tp_price) > 0) {
-            tp_sl_trade.push({
-                symbol: symbol,
-                side: side == "SELL" ? "BUY" : "SELL",
-                type: "TAKE_PROFIT_MARKET",
-                closePosition: "true",
-                stopPrice: tp_price,
-                timeInForce: 'GTE_GTC'
-            });
         }
-        responses.concat(await exports.BinanceFuturesClient.submitMultipleOrders(tp_sl_trade));
-        console.log(responses);
         return {
             "success": true,
             "message": "success",
@@ -87,6 +90,23 @@ async function getTradeResult(symbol, startTime, endTime) {
     };
 }
 exports.getTradeResult = getTradeResult;
+async function getCurrentPrice(symbol) {
+    let response = await exports.BinanceFuturesClient.getMarkPrice({
+        symbol: symbol
+    });
+    if ('markPrice' in response)
+        return {
+            "success": true,
+            "message": "success",
+            "data": response.markPrice
+        };
+    return {
+        "success": false,
+        "message": response,
+        "data": undefined
+    };
+}
+exports.getCurrentPrice = getCurrentPrice;
 function getPositionSize(risk, price, sl_price) {
     return ((risk / Math.abs(sl_price - price)) * price);
 }
