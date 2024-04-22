@@ -82,14 +82,17 @@ const tradeTemplate = ()=> /*html*/
             </div>
             <div class="divider">New Trades</div>
             <label class="form-control w-full">
-
                 <div class="flex justify-content-center">
-                    <input class="input input-bordered w-1/2 mr-2 size-trigger" name="entry_price" type="number" placeholder="Entry price" />
+                    <input class="input input-bordered w-1/2 mr-2 size-trigger" name="entry_price" type="number" placeholder="Entry price" value="0"/>
                     <select class="select select-bordered w-1/2" name="symbol">
+                        <option selected value="ETHUSDC">ETHUSDC</option>
+                        <option value="BTCUSDC">BTCUSDC</option>
+                        <option value="LTCUSDC">LTCUSDC</option>
+                        <option value="BNBUSDC">BNBUSDC</option>
                         <option value="ETHUSDT">ETHUSDT</option>
                         <option value="BTCUSDT">BTCUSDT</option>
                         <option value="LTCUSDT">LTCUSDT</option>
-                        <option selected value="BNBUSDT">BNBUSDT</option>
+                        <option value="BNBUSDT">BNBUSDT</option>
                     </select>
                 </div>
             </label>
@@ -169,3 +172,15 @@ const syncTrade = async (id)=>{
         alert(sync.message)
     }
 }
+const audio = new Audio('notification.wav');
+
+$(document).ready(function(){
+    console.log('init notif');
+    setInterval(function() {
+        console.log('notif running');
+        let now = new Date();
+        if(now.getMinutes() % 5 == 0){
+            audio.play();
+        }
+    }, 40 * 1000); 
+})

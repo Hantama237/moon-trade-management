@@ -20,7 +20,7 @@ export interface EntryResult {
 
 export async function newEntryWithTPSL(symbol: string,type: FuturesOrderType, side: OrderSide, quantity: string, price: string, sl_price: string, tp_price: string, ): Promise<EntryResult>{
     let responses : any[] = [];
-    console.log(quantity);
+    
     let response = await BinanceFuturesClient.submitNewOrder(
         {
             symbol: symbol,

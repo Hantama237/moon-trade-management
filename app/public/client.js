@@ -66,7 +66,7 @@ addEventListener('#new-trade', 'click', async (ev) => {
       entry_price: parseFloat($('[name="entry_price"]').val()),
       stop_loss_price: parseFloat($('[name="stop_loss_price"]').val()),
       take_profit_price: parseFloat($('[name="take_profit_price"]').val()),
-      size: 1,
+      size: 0.002,
     });
     alert(response.message)
     return;

@@ -18,7 +18,6 @@ exports.BinanceFuturesClient = new binance_1.USDMClient({
 }, undefined, false);
 async function newEntryWithTPSL(symbol, type, side, quantity, price, sl_price, tp_price) {
     let responses = [];
-    console.log(quantity);
     let response = await exports.BinanceFuturesClient.submitNewOrder({
         symbol: symbol,
         side: side,

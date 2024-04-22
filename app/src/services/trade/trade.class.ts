@@ -8,7 +8,7 @@ import type { Trade, TradeData, TradeEntry, TradePatch, TradeQuery } from './tra
 
 import {newEntryWithTPSL, getPositionSize, getTradeResult, getCurrentPrice} from '../../helper/binance.futures'
 import {app} from '../../app'
-import { NewOrderError } from 'binance'
+import { NewOrderError, OrderSide } from 'binance'
 
 export type { Trade, TradeData, TradePatch, TradeQuery }
 
@@ -58,20 +58,31 @@ export class TradeService<ServiceParams extends Params = TradeParams> extends Kn
   }
   async addBinanceTrade(data: TradeEntry,params: TradeParams) {
     let precision = await app.service('setting').getAssetPrecision(data.symbol);
+    
+    let input_entry_price = data.entry_price;
     let mark_price = await getCurrentPrice(data.symbol);
-    
-    
     if(!mark_price.success){
       return {
         success:false,
         message:"get price failed"
       }
     }
-    console.log(mark_price);
-    data.entry_price = parseFloat(mark_price.data as string);
+
+    data.entry_price = data.entry_price > 0 ? data.entry_price : parseFloat(mark_price.data as string);
+    let side : OrderSide = data.entry_price > data.stop_loss_price ? 'BUY' : 'SELL';
+    if(input_entry_price == 0){
+      let limit_price = data.entry_price;
+      if(side == 'BUY'){
+          limit_price = limit_price - (limit_price * 0.0001)
+      }else{
+          limit_price = limit_price + (limit_price * 0.0001)
+      }
+      data.entry_price = limit_price;
+    }
+
     data.size = parseFloat((await this.calculatePositionSize(data as TradeData, params)).data.size_crypto);
-    console.log(data.size.toFixed(precision.data));
-    let result = await newEntryWithTPSL(data.symbol, 'LIMIT', data.entry_price > data.stop_loss_price ? 'BUY' : 'SELL',data.size.toFixed(precision.data), data.entry_price.toFixed(2), data.stop_loss_price.toFixed(2),data.take_profit_price.toFixed(2))
+
+    let result = await newEntryWithTPSL(data.symbol, 'LIMIT', side,data.size.toFixed(precision.data), data.entry_price.toFixed(2), data.stop_loss_price.toFixed(2),data.take_profit_price.toFixed(2))
     if(result.success && result.data){
       let trade_data = data as TradeData;
       trade_data.binance_order_id = result.data.orderId;

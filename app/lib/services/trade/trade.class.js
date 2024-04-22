@@ -43,6 +43,7 @@ class TradeService extends knex_1.KnexService {
     }
     async addBinanceTrade(data, params) {
         let precision = await app_1.app.service('setting').getAssetPrecision(data.symbol);
+        let input_entry_price = data.entry_price;
         let mark_price = await (0, binance_futures_1.getCurrentPrice)(data.symbol);
         if (!mark_price.success) {
             return {
@@ -50,11 +51,20 @@ class TradeService extends knex_1.KnexService {
                 message: "get price failed"
             };
         }
-        console.log(mark_price);
-        data.entry_price = parseFloat(mark_price.data);
+        data.entry_price = data.entry_price > 0 ? data.entry_price : parseFloat(mark_price.data);
+        let side = data.entry_price > data.stop_loss_price ? 'BUY' : 'SELL';
+        if (input_entry_price == 0) {
+            let limit_price = data.entry_price;
+            if (side == 'BUY') {
+                limit_price = limit_price - (limit_price * 0.0001);
+            }
+            else {
+                limit_price = limit_price + (limit_price * 0.0001);
+            }
+            data.entry_price = limit_price;
+        }
         data.size = parseFloat((await this.calculatePositionSize(data, params)).data.size_crypto);
-        console.log(data.size.toFixed(precision.data));
-        let result = await (0, binance_futures_1.newEntryWithTPSL)(data.symbol, 'LIMIT', data.entry_price > data.stop_loss_price ? 'BUY' : 'SELL', data.size.toFixed(precision.data), data.entry_price.toFixed(2), data.stop_loss_price.toFixed(2), data.take_profit_price.toFixed(2));
+        let result = await (0, binance_futures_1.newEntryWithTPSL)(data.symbol, 'LIMIT', side, data.size.toFixed(precision.data), data.entry_price.toFixed(2), data.stop_loss_price.toFixed(2), data.take_profit_price.toFixed(2));
         if (result.success && result.data) {
             let trade_data = data;
             trade_data.binance_order_id = result.data.orderId;
